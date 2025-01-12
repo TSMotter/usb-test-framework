@@ -27,7 +27,10 @@ sudo mkfs.ext4 sdb1
 
 - Run the tests
 ```bash
-(.venvpy3) ggm@ubuntu2004:~/Documents/usb-test-framework/tests (master)$ pytest --log-cli-level=DEBUG -v test_usb_stick.py
+cd tests
+sudo su
+source .venvpy3/bin/activate
+pytest --log-cli-level=DEBUG -v test_usb_stick.py
 ```
 
 - Cheatsheet

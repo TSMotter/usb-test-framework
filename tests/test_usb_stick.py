@@ -11,8 +11,10 @@ from datetime import datetime
 from fixtures.usb_stick import usb_cfg, test_cfg, dd_cfg, \
     check_input_file_exists_or_create_it, unmount_device, write_zeros
 
+from fixtures.support import html_report
+
 # Fixed number of test iterations
-ITERATIONS = 2
+ITERATIONS = 10
 
 # Setup logging to stdout and to a log file
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(message)s")
@@ -30,9 +32,9 @@ class TestUSB:
         return hasher.hexdigest()
 
     @pytest.mark.parametrize("iteration", range(ITERATIONS))
-    def test_usb_stick_read_write_dump(self, iteration, write_zeros, 
-                                       check_input_file_exists_or_create_it, 
-                                       usb_cfg, test_cfg, dd_cfg):
+    def test_usb_stick_read_write_dump(self, iteration, write_zeros,
+                                       check_input_file_exists_or_create_it,
+                                       usb_cfg, test_cfg, dd_cfg, html_report):
         """Test USB reliability by writing and reading back data"""
 
         # Skip test if not running on Linux
@@ -77,10 +79,19 @@ class TestUSB:
                 result_message += f"SUCCESS (Hashes match - {expected_hash}) - Write time: {write_duration:.2f}s, Read time: {read_duration:.2f}s"
             else:
                 result_message += f"FAILURE (Hashes do not match {expected_hash} != {actual_hash}) - Write time: {write_duration:.2f}s, Read time: {read_duration:.2f}s"
-            
+
             # Log times spent
             logger.info(f"{result_message}")
 
         finally:
             logger.info(f"Finally block reached - Deleting {tmp_dir}")
-            shutil.rmtree(tmp_dir) 
+            shutil.rmtree(tmp_dir)
+
+            success = expected_hash == actual_hash
+            # Store result in class attribute
+            html_report.append({
+                "iteration": iteration,
+                "write_duration": write_duration,
+                "read_duration": read_duration,
+                "hash_match": success
+            })

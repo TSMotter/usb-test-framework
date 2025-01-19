@@ -27,9 +27,9 @@ sudo mkfs.ext4 sdb1
 
 - Run the tests
 ```bash
-cd tests
 sudo su
 source .venvpy3/bin/activate
+cd tests
 pytest --log-cli-level=DEBUG -v test_usb_stick.py
 ```
 
@@ -39,6 +39,9 @@ sudo fdisk -l /dev/sdb
 sudo parted /dev/sdb print
 ```
 
+<!--
+
 - 
 ```bash
 ```
+-->

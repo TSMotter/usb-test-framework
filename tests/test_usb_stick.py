@@ -8,9 +8,8 @@ import time
 import logging
 from datetime import datetime
 
-from fixtures.usb_stick import usb_cfg, test_cfg, dd_cfg, \
-    check_input_file_exists_or_create_it, unmount_device, write_zeros
-
+from fixtures.environment import testenv, dd_cfg
+from fixtures.usb_stick import rand_bin_file, wipe_and_format_usb
 from fixtures.support import html_report
 
 # Fixed number of test iterations
@@ -20,8 +19,14 @@ ITERATIONS = 10
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(message)s")
 logger = logging.getLogger()
 
-@pytest.mark.usefixtures("unmount_device")
-class TestUSB:
+@pytest.mark.usefixtures("wipe_and_format_usb")
+class TestDummy:
+    @pytest.mark.parametrize("iteration", range(1))
+    def test_dummy(self, iteration):
+        logger.info(f"This is test_dummy")
+
+@pytest.mark.usefixtures("wipe_and_format_usb")
+class TestUSBdd:
     @staticmethod
     def calculate_md5sum(file_path):
         """Calculate MD5 checksum of a file"""
@@ -32,27 +37,26 @@ class TestUSB:
         return hasher.hexdigest()
 
     @pytest.mark.parametrize("iteration", range(ITERATIONS))
-    def test_usb_stick_read_write_dump(self, iteration, write_zeros,
-                                       check_input_file_exists_or_create_it,
-                                       usb_cfg, test_cfg, dd_cfg, html_report):
+    def test_usb_stick_read_write_dump(self, testenv, dd_cfg, iteration, html_report,
+                                       rand_bin_file):
         """Test USB reliability by writing and reading back data"""
 
         # Skip test if not running on Linux
         if sys.platform != "linux":
             pytest.skip("This test needs Linux OS to be executed")
 
-        partition1 = usb_cfg["device"] + "1"
+        partition1 = testenv['usb']['device'] + "1"
 
         tmp_dir = os.path.join(os.path.dirname(__file__), "tmp")
         os.makedirs(tmp_dir, exist_ok=True)
         readback_file = os.path.join(tmp_dir, f"readback_data_{iteration}.bin")
 
-        expected_hash = self.calculate_md5sum(test_cfg['input_bin_file'])
+        expected_hash = self.calculate_md5sum(rand_bin_file)
         logger.info(f"This is the expected_hash: {expected_hash}")
 
         try:
             # Time the write operation
-            command = f"dd if={test_cfg['input_bin_file']} of={partition1} bs={dd_cfg['bs']} seek={dd_cfg['offset']} conv=notrunc status=progress"
+            command = f"dd if={rand_bin_file} of={partition1} bs={dd_cfg['bs']} seek={dd_cfg['offset']} conv=notrunc status=progress"
             logger.info(f"Will execute: {command}")
             start_write_time = time.time()
             subprocess.run(f"{command}", shell=True, check=True)

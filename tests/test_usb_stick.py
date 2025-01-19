@@ -8,9 +8,10 @@ import time
 import logging
 from datetime import datetime
 
-from fixtures.environment import testenv, dd_cfg
+from fixtures.environment import testenv
+from fixtures.parametrization import dd_cfg, fio_cfg
 from fixtures.usb_stick import rand_bin_file, wipe_and_format_usb
-from fixtures.support import html_report
+from fixtures.reports import html_report_dd, csv_report_fio
 
 # Fixed number of test iterations
 ITERATIONS = 10
@@ -19,11 +20,13 @@ ITERATIONS = 10
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(message)s")
 logger = logging.getLogger()
 
+
 @pytest.mark.usefixtures("wipe_and_format_usb")
 class TestDummy:
     @pytest.mark.parametrize("iteration", range(1))
     def test_dummy(self, iteration):
         logger.info(f"This is test_dummy")
+
 
 @pytest.mark.usefixtures("wipe_and_format_usb")
 class TestUSBdd:
@@ -37,8 +40,7 @@ class TestUSBdd:
         return hasher.hexdigest()
 
     @pytest.mark.parametrize("iteration", range(ITERATIONS))
-    def test_usb_stick_read_write_dump(self, testenv, dd_cfg, iteration, html_report,
-                                       rand_bin_file):
+    def test_usb_stick_read_write_checksum(self, testenv, dd_cfg, iteration, html_report_dd, rand_bin_file):
         """Test USB reliability by writing and reading back data"""
 
         # Skip test if not running on Linux
@@ -88,14 +90,43 @@ class TestUSBdd:
             logger.info(f"{result_message}")
 
         finally:
-            logger.info(f"Finally block reached - Deleting {tmp_dir}")
+            logger.info(f"Finally block reached")
             shutil.rmtree(tmp_dir)
 
             success = expected_hash == actual_hash
             # Store result in class attribute
-            html_report.append({
+            html_report_dd.append({
                 "iteration": iteration,
                 "write_duration": write_duration,
                 "read_duration": read_duration,
                 "hash_match": success
             })
+
+
+@pytest.mark.usefixtures("wipe_and_format_usb")
+class TestUSBfio:
+    def test_fio_write_and_verify(self, testenv, csv_report_fio):
+        try:
+            command = f"fio \
+                --name=write_and_verify \
+                --verify_state_save=0 \
+                --rw=write \
+                --bs=128k \
+                --size=100MB \
+                --direct=1 \
+                --ioengine=libaio \
+                --iodepth=16 \
+                --verify=crc32c \
+                --filename={testenv['usb']['device']}"
+            logger.info(f"Will execute: {command}")
+            res = subprocess.run(
+                f"{command}", capture_output=True, shell=True, check=True)
+            stdout = res.stdout
+            stderr = res.stderr
+            rc = res.returncode
+            logger.info(f"This is stdout: {stdout}")
+            logger.info(f"This is stderr: {stderr}")
+            logger.info(f"This is rc: {rc}")
+
+        finally:
+            logger.info(f"Finally block reached")

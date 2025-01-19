@@ -1,4 +1,5 @@
 **venv**
 *.bin
 *.html
+*.csv
 **cache**

@@ -3,10 +3,12 @@ import os
 import subprocess
 import logging
 
-from .environment import testenv, dd_cfg
+from .environment import testenv
+from .parametrization import dd_cfg
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(message)s")
 logger = logging.getLogger()
+
 
 @pytest.fixture(scope="function")
 def rand_bin_file(dd_cfg):
@@ -19,12 +21,15 @@ def rand_bin_file(dd_cfg):
                     bs={dd_cfg['bs']} \
                     count={dd_cfg['count']} \
                     status=progress",
-                    shell=True, check=True)
+                   shell=True, check=True)
     yield rand_bin_file
     os.remove(f"{rand_bin_file}")
 
+
 @pytest.fixture(scope="class")
 def wipe_and_format_usb(testenv):
-    wipe_script = os.path.join(os.path.dirname(os.getcwd()),"scripts", "wipe-and-format-usb.sh")
+    wipe_script = os.path.join(os.path.dirname(
+        os.getcwd()), "scripts", "wipe-and-format-usb.sh")
     logger.info(f"Wiping and formating USB device with {wipe_script}")
-    subprocess.run(f"sh {wipe_script} {testenv['usb']['device']}", shell=True, check=True)
+    subprocess.run(
+        f"sh {wipe_script} {testenv['usb']['device']}", shell=True, check=True)

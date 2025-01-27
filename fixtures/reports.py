@@ -1,5 +1,6 @@
 import pytest
 import os
+import json
 import logging
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(message)s")
@@ -39,14 +40,18 @@ def html_report_dd():
 
 
 @pytest.fixture(scope="class")
-def csv_report_fio():
-    logger.info(f"Setting up csv_report_fio object")
-    results = []
+def report_fio():
+    logger.info(f"Setting up report_fio object")
+    results = {}
 
     yield results
 
-    logger.info(f"Creating csv_report_fio...")
-    report_file = "csv_report_fio.csv"
+    logger.info(f"Creating report_fio...")
+    json_results = json.dumps(results, indent=4)
+    logger.info(f"{json_results}")
 
+    report_file = "report_fio.json"
     if os.path.exists(report_file):
         os.remove(f"{report_file}")
+    with open(report_file, "w") as f:
+        f.write(json_results)

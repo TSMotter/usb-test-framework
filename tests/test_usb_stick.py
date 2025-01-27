@@ -6,12 +6,13 @@ import os
 import sys
 import time
 import logging
+import json
 from datetime import datetime
 
 from fixtures.environment import testenv
 from fixtures.parametrization import dd_cfg, fio_cfg
 from fixtures.usb_stick import rand_bin_file, wipe_and_format_usb
-from fixtures.reports import html_report_dd, csv_report_fio
+from fixtures.reports import html_report_dd, report_fio
 
 # Fixed number of test iterations
 ITERATIONS = 10
@@ -19,13 +20,6 @@ ITERATIONS = 10
 # Setup logging to stdout and to a log file
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(message)s")
 logger = logging.getLogger()
-
-
-@pytest.mark.usefixtures("wipe_and_format_usb")
-class TestDummy:
-    @pytest.mark.parametrize("iteration", range(1))
-    def test_dummy(self, iteration):
-        logger.info(f"This is test_dummy")
 
 
 @pytest.mark.usefixtures("wipe_and_format_usb")
@@ -105,28 +99,61 @@ class TestUSBdd:
 
 @pytest.mark.usefixtures("wipe_and_format_usb")
 class TestUSBfio:
-    def test_fio_write_and_verify(self, testenv, csv_report_fio):
+    @pytest.mark.parametrize("iteration", range(4))
+    @pytest.mark.parametrize("rw", ["write", "randwrite"])
+    @pytest.mark.parametrize("ioengine", ["sync", "libaio"])
+    @pytest.mark.parametrize("iodepth", ["1", "16", "32"])
+    @pytest.mark.parametrize("numjobs", ["1"])
+    def test_fio_write_and_verify(self, request, devname,
+                                  iteration, rw, ioengine, iodepth, numjobs,
+                                  fio_cfg, testenv, report_fio):
         try:
+            testname = request.node.name
+            test_case = numjobs + '-' + iodepth + '-' + ioengine + '-' + rw
             command = f"fio \
-                --name=write_and_verify \
+                --name={testname} \
                 --verify_state_save=0 \
-                --rw=write \
-                --bs=128k \
-                --size=100MB \
                 --direct=1 \
-                --ioengine=libaio \
-                --iodepth=16 \
+                --rw={rw} \
+                --ioengine={ioengine} \
+                --iodepth={iodepth} \
+                --numjobs={numjobs} \
+                --group_reporting \
+                --bs=128k \
+                --size={fio_cfg['size']} \
                 --verify=crc32c \
-                --filename={testenv['usb']['device']}"
+                --filename={testenv['usb']['device']} \
+                --output-format=json"
             logger.info(f"Will execute: {command}")
             res = subprocess.run(
                 f"{command}", capture_output=True, shell=True, check=True)
-            stdout = res.stdout
-            stderr = res.stderr
+            stdout = res.stdout.decode('utf-8')
             rc = res.returncode
-            logger.info(f"This is stdout: {stdout}")
-            logger.info(f"This is stderr: {stderr}")
-            logger.info(f"This is rc: {rc}")
+            if rc != 0:
+                stderr = res.stderr.decode('utf-8')
+                logger.info(f"This is rc: {rc}")
+                logger.info(f"This is stderr: {stderr}")
+
+            json_stdout = json.loads(stdout)
+            job_summary = json_stdout['jobs'][-1]
+            read = job_summary['read']
+            write = job_summary['write']
 
         finally:
             logger.info(f"Finally block reached")
+            if devname not in report_fio:
+                report_fio[devname] = {}
+            if test_case not in report_fio[devname]:
+                report_fio[devname][test_case] = {}
+            if iteration not in report_fio[devname][test_case]:
+                report_fio[devname][test_case][iteration] = {}
+
+            report_fio[devname][test_case][iteration]["success"] = rc
+            report_fio[devname][test_case][iteration]["read_io_kbytes"] = read['io_kbytes']
+            report_fio[devname][test_case][iteration]["read_bw"] = read['bw']
+            report_fio[devname][test_case][iteration]["read_iops"] = read['iops']
+            report_fio[devname][test_case][iteration]["write_io_kbytes"] = write['io_kbytes']
+            report_fio[devname][test_case][iteration]["write_bw"] = write['bw']
+            report_fio[devname][test_case][iteration]["write_iops"] = write['iops']
+            report_fio[devname][test_case][iteration]["usr_cpu"] = job_summary['usr_cpu']
+            report_fio[devname][test_case][iteration]["sys_cpu"] = job_summary['sys_cpu']

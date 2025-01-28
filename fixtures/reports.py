@@ -2,6 +2,7 @@ import pytest
 import os
 import json
 import logging
+from datetime import datetime
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(message)s")
 logger = logging.getLogger()
@@ -50,7 +51,16 @@ def report_fio():
     json_results = json.dumps(results, indent=4)
     logger.info(f"{json_results}")
 
-    report_file = "report_fio.json"
+    device_report = json_results[0]
+    for testcase in device_report:
+        for iteration in testcase:
+            base_usr_cpu = iteration['usr_cpu']
+            base_sys_cpu = iteration['sys_cpu']
+            read_dict = iteration['read']
+            write_dict = iteration['write']
+
+    timestamp = datetime.now().strftime("%Y-%m-%d-%H-%M")
+    report_file = timestamp + "-report-fio.json"
     if os.path.exists(report_file):
         os.remove(f"{report_file}")
     with open(report_file, "w") as f:

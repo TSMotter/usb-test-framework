@@ -109,7 +109,7 @@ class TestUSBfio:
                                   fio_cfg, testenv, report_fio):
         try:
             testname = request.node.name
-            test_case = numjobs + '-' + iodepth + '-' + ioengine + '-' + rw
+            testcase = numjobs + '-' + iodepth + '-' + ioengine + '-' + rw
             command = f"fio \
                 --name={testname} \
                 --verify_state_save=0 \
@@ -127,33 +127,43 @@ class TestUSBfio:
             logger.info(f"Will execute: {command}")
             res = subprocess.run(
                 f"{command}", capture_output=True, shell=True, check=True)
-            stdout = res.stdout.decode('utf-8')
             rc = res.returncode
-            if rc != 0:
-                stderr = res.stderr.decode('utf-8')
-                logger.info(f"This is rc: {rc}")
-                logger.info(f"This is stderr: {stderr}")
-
+            stdout = res.stdout.decode('utf-8')
             json_stdout = json.loads(stdout)
             job_summary = json_stdout['jobs'][-1]
             read = job_summary['read']
             write = job_summary['write']
 
-        finally:
-            logger.info(f"Finally block reached")
+            # Make sure json structure is OK
             if devname not in report_fio:
                 report_fio[devname] = {}
-            if test_case not in report_fio[devname]:
-                report_fio[devname][test_case] = {}
-            if iteration not in report_fio[devname][test_case]:
-                report_fio[devname][test_case][iteration] = {}
+            if testcase not in report_fio[devname]:
+                report_fio[devname][testcase] = {}
+            if iteration not in report_fio[devname][testcase]:
+                report_fio[devname][testcase][iteration] = {}
+            if 'read' not in report_fio[devname][testcase][iteration]:
+                report_fio[devname][testcase][iteration]['read'] = {}
+            if 'write' not in report_fio[devname][testcase][iteration]:
+                report_fio[devname][testcase][iteration]['write'] = {}
 
-            report_fio[devname][test_case][iteration]["success"] = rc
-            report_fio[devname][test_case][iteration]["read_io_kbytes"] = read['io_kbytes']
-            report_fio[devname][test_case][iteration]["read_bw"] = read['bw']
-            report_fio[devname][test_case][iteration]["read_iops"] = read['iops']
-            report_fio[devname][test_case][iteration]["write_io_kbytes"] = write['io_kbytes']
-            report_fio[devname][test_case][iteration]["write_bw"] = write['bw']
-            report_fio[devname][test_case][iteration]["write_iops"] = write['iops']
-            report_fio[devname][test_case][iteration]["usr_cpu"] = job_summary['usr_cpu']
-            report_fio[devname][test_case][iteration]["sys_cpu"] = job_summary['sys_cpu']
+            report_fio[devname][testcase][iteration]['success'] = rc
+            report_fio[devname][testcase][iteration]['read']['io_kbytes'] = read['io_kbytes']
+            report_fio[devname][testcase][iteration]['read']['bw'] = read['bw']
+            report_fio[devname][testcase][iteration]['read']['iops'] = read['iops']
+            report_fio[devname][testcase][iteration]['read']['runtime'] = read['runtime']
+            report_fio[devname][testcase][iteration]['write']['io_kbytes'] = write['io_kbytes']
+            report_fio[devname][testcase][iteration]['write']['bw'] = write['bw']
+            report_fio[devname][testcase][iteration]['write']['iops'] = write['iops']
+            report_fio[devname][testcase][iteration]['write']['runtime'] = write['runtime']
+            report_fio[devname][testcase][iteration]['usr_cpu'] = job_summary['usr_cpu']
+            report_fio[devname][testcase][iteration]['sys_cpu'] = job_summary['sys_cpu']
+
+        except Exception as e:
+            logger.warning(f"Except block reached: {e}")
+            if rc != 0:
+                stderr = res.stderr.decode('utf-8')
+                logger.warning(f"This is rc: {rc}")
+                logger.warning(f"This is stderr: {stderr}")
+                pytest.fail("Exception happened!!!")
+        finally:
+            logger.info(f"Finally block reached")

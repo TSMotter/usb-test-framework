@@ -101,7 +101,7 @@ class TestUSBdd:
 
 @pytest.mark.usefixtures("wipe_and_format_usb")
 class TestUSBfio:
-    @pytest.mark.parametrize("iteration", range(1))
+    @pytest.mark.parametrize("iteration", range(1, 5))
     @pytest.mark.parametrize("rw", ["write", "randwrite"])
     @pytest.mark.parametrize("ioengine", ["sync", "libaio"])
     @pytest.mark.parametrize("iodepth", ["1", "16", "32"])

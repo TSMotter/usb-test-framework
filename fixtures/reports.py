@@ -1,9 +1,8 @@
 import pytest
 import os
-import sys
-import json
 import logging
-from datetime import datetime
+
+from helpers.plotly import plotler
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(message)s")
 logger = logging.getLogger()
@@ -52,23 +51,4 @@ def report_fio():
     yield results
 
     logger.info(f"Creating report_fio...")
-    json_results = json.dumps(results, indent=4)
-    logger.info(f"{json_results}")
-
-    device_report = results[next(iter(results))]
-    for test, test_dict in device_report.items():
-        for iteration, iteration_dict in test_dict.items():
-            read_dict = iteration_dict['read']
-            write_dict = iteration_dict['write']
-            base_usr_cpu = iteration_dict['usr_cpu']
-            base_sys_cpu = iteration_dict['sys_cpu']
-
-    report_filen = datetime.now().strftime("%Y-%m-%d-%H-%M") + "-report-fio.json"
-    report_filep = os.path.join(os.path.dirname(os.getcwd()),
-                                "workspace",
-                                report_filen)
-
-    if os.path.exists(report_filep):
-        os.remove(f"{report_filep}")
-    with open(report_filep, "w") as f:
-        f.write(json_results)
+    plotler(results)

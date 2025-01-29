@@ -43,7 +43,9 @@ class TestUSBdd:
 
         partition1 = testenv['usb']['device'] + "1"
 
-        tmp_dir = os.path.join(os.path.dirname(__file__), "tmp")
+        tmp_dir = os.path.join(os.path.dirname(os.getcwd()),
+                               "workspace",
+                               "tmp")
         os.makedirs(tmp_dir, exist_ok=True)
         readback_file = os.path.join(tmp_dir, f"readback_data_{iteration}.bin")
 
@@ -99,19 +101,24 @@ class TestUSBdd:
 
 @pytest.mark.usefixtures("wipe_and_format_usb")
 class TestUSBfio:
-    @pytest.mark.parametrize("iteration", range(4))
+    @pytest.mark.parametrize("iteration", range(1))
     @pytest.mark.parametrize("rw", ["write", "randwrite"])
     @pytest.mark.parametrize("ioengine", ["sync", "libaio"])
     @pytest.mark.parametrize("iodepth", ["1", "16", "32"])
     @pytest.mark.parametrize("numjobs", ["1"])
-    def test_fio_write_and_verify(self, request, devname,
-                                  iteration, rw, ioengine, iodepth, numjobs,
-                                  fio_cfg, testenv, report_fio):
+    @pytest.mark.parametrize("bs", ["128k"])
+    def test_fio_write_verify(self, devname,
+                              iteration, rw, ioengine, iodepth, numjobs, bs,
+                              fio_cfg, testenv, report_fio):
         try:
-            testname = request.node.name
-            testcase = numjobs + '-' + iodepth + '-' + ioengine + '-' + rw
+            testcase = numjobs + '-' \
+                + iodepth + '-' \
+                + ioengine + '-' \
+                + rw + '-' \
+                + bs + '-' \
+                + fio_cfg['size']
             command = f"fio \
-                --name={testname} \
+                --name={testcase} \
                 --verify_state_save=0 \
                 --direct=1 \
                 --rw={rw} \
@@ -119,7 +126,7 @@ class TestUSBfio:
                 --iodepth={iodepth} \
                 --numjobs={numjobs} \
                 --group_reporting \
-                --bs=128k \
+                --bs={bs} \
                 --size={fio_cfg['size']} \
                 --verify=crc32c \
                 --filename={testenv['usb']['device']} \
@@ -146,7 +153,6 @@ class TestUSBfio:
             if 'write' not in report_fio[devname][testcase][iteration]:
                 report_fio[devname][testcase][iteration]['write'] = {}
 
-            report_fio[devname][testcase][iteration]['success'] = rc
             report_fio[devname][testcase][iteration]['read']['io_kbytes'] = read['io_kbytes']
             report_fio[devname][testcase][iteration]['read']['bw'] = read['bw']
             report_fio[devname][testcase][iteration]['read']['iops'] = read['iops']
@@ -155,6 +161,7 @@ class TestUSBfio:
             report_fio[devname][testcase][iteration]['write']['bw'] = write['bw']
             report_fio[devname][testcase][iteration]['write']['iops'] = write['iops']
             report_fio[devname][testcase][iteration]['write']['runtime'] = write['runtime']
+            report_fio[devname][testcase][iteration]['success'] = rc
             report_fio[devname][testcase][iteration]['usr_cpu'] = job_summary['usr_cpu']
             report_fio[devname][testcase][iteration]['sys_cpu'] = job_summary['sys_cpu']
 

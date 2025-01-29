@@ -1,4 +1,10 @@
 pytest==8.3.4
 pytest-html==4.1.1
 configparser==7.1.0
+
+# for formating
 autopep8==2.3.1
+
+# for report generation
+plotly==6.0.0
+numpy==1.24.4

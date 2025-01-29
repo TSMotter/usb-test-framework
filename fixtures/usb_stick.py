@@ -12,7 +12,10 @@ logger = logging.getLogger()
 
 @pytest.fixture(scope="function")
 def rand_bin_file(dd_cfg):
-    rand_bin_file = os.path.join(os.getcwd(), "rand_input.bin")
+    rand_bin_file = os.path.join(os.path.dirname(os.getcwd()),
+                                 "workspace",
+                                 "rand_input.bin")
+
     logger.info(f"Creating file {rand_bin_file}")
     if os.path.exists(rand_bin_file):
         os.remove(f"{rand_bin_file}")
@@ -28,8 +31,9 @@ def rand_bin_file(dd_cfg):
 
 @pytest.fixture(scope="class")
 def wipe_and_format_usb(testenv):
-    wipe_script = os.path.join(os.path.dirname(
-        os.getcwd()), "scripts", "wipe-and-format-usb.sh")
+    wipe_script = os.path.join(os.path.dirname(os.getcwd()),
+                               "scripts",
+                               "wipe-and-format-usb.sh")
     logger.info(f"Wiping and formating USB device with {wipe_script}")
     subprocess.run(
         f"sh {wipe_script} {testenv['usb']['device']}", shell=True, check=True)

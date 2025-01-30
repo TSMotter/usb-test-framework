@@ -38,8 +38,6 @@ def plotler(results: dict):
         json_results = json.dumps(results, indent=4)
         f.write(json_results)
 
-    iterations_as_lst = []
-
     metrics = {
         # I/O statistics for READ direction
         # total io performed kbytes (should match the amount of data transfered, defined via --size)
@@ -68,6 +66,11 @@ def plotler(results: dict):
     devname = next(iter(results))
     dev_report = results[devname]
     for test_name, test_data in dev_report.items():
+
+        # Cleanup
+        iterations_as_lst = []
+        for metric in metrics:
+            metric['data'] = []
 
         html_filen = report_ts + '-' + test_name + '.html'
         html_report_filep = os.path.join(

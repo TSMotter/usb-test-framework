@@ -23,8 +23,6 @@ HTML_CONTENT_REF = """
         .chart-container { margin-bottom: 40px; }
     </style>
 </head>
-<body>
-    <h1>Test Report: Speed and Mass per Test Case</h1>
 """
 
 
@@ -43,16 +41,28 @@ def plotler(results: dict):
     iterations_as_lst = []
 
     metrics = {
-        "read_io_kbytes": [],
-        "read_bw": [],
-        "read_iops": [],
-        "read_runtime": [],
-        "write_io_kbytes": [],
-        "write_bw": [],
-        "write_iops": [],
-        "write_runtime": [],
-        "base_usr_cpu": [],
-        "base_sys_cpu": []
+        # I/O statistics for READ direction
+        # total io performed kbytes (should match the amount of data transfered, defined via --size)
+        'read_io_kbytes': {'data': [], 'unit': 'KB'},
+        # average bandwidth rate [MB/s]
+        'read_bw_bytes': {'data': [], 'unit': 'MB/s'},
+        # iops (number of read/write *operations* done per second. Should be correlated
+        # somehow with the iodepth parameter)
+        'read_iops': {'data': [], 'unit': 'I/O ops'},
+        # runtime of the thread [ms]
+        'read_runtime': {'data': [], 'unit': 'ms'},
+
+        # I/O statistics for WRITE direction
+        'write_io_kbytes': {'data': [], 'unit': 'KB'},
+        'write_bw_bytes': {'data': [], 'unit': 'MB/s'},
+        'write_iops': {'data': [], 'unit': 'I/O ops'},
+        'write_runtime': {'data': [], 'unit': 'ms'},
+
+        # CPU time statistics for all operations
+        # usr cpu usage [% of cpu time in usr space]
+        'base_usr_cpu': {'data': [], 'unit': '% cpu time'},
+        # sys cpu usage [% of cpu time in sys space]
+        'base_sys_cpu': {'data': [], 'unit': '% cpu time'},
     }
 
     devname = next(iter(results))
@@ -63,30 +73,38 @@ def plotler(results: dict):
         html_report_filep = os.path.join(
             os.path.dirname(os.getcwd()), "workspace", html_filen)
         html_content = HTML_CONTENT_REF
+        html_content += f"""
+            <body>
+                <h1>Test Report: {devname} - {test_name}</h1>
+            """
 
         for iteration, iteration_data in test_data.items():
             iterations_as_lst.append(int(iteration))
-
-            metrics['read_io_kbytes'].append(
+            metrics['read_io_kbytes']['data'].append(
                 float(iteration_data['read']['io_kbytes']))
-            metrics['read_bw'].append(float(iteration_data['read']['bw']))
-            metrics['read_iops'].append(float(iteration_data['read']['iops']))
-            metrics['read_runtime'].append(
+            metrics['read_bw_bytes']['data'].append(
+                float(iteration_data['read']['bw_bytes']))
+            metrics['read_iops']['data'].append(
+                float(iteration_data['read']['iops']))
+            metrics['read_runtime']['data'].append(
                 float(iteration_data['read']['runtime']))
 
-            metrics['write_io_kbytes'].append(
+            metrics['write_io_kbytes']['data'].append(
                 float(iteration_data['write']['io_kbytes']))
-            metrics['write_bw'].append(float(iteration_data['write']['bw']))
-            metrics['write_iops'].append(
+            metrics['write_bw_bytes']['data'].append(
+                float(iteration_data['write']['bw_bytes']))
+            metrics['write_iops']['data'].append(
                 float(iteration_data['write']['iops']))
-            metrics['write_runtime'].append(
+            metrics['write_runtime']['data'].append(
                 float(iteration_data['write']['runtime']))
 
-            metrics['base_usr_cpu'].append(float(iteration_data['usr_cpu']))
-            metrics['base_sys_cpu'].append(float(iteration_data['sys_cpu']))
+            metrics['base_usr_cpu']['data'].append(
+                float(iteration_data['usr_cpu']))
+            metrics['base_sys_cpu']['data'].append(
+                float(iteration_data['sys_cpu']))
 
         for metric_name, metric_data in metrics.items():
-            metric_mean = np.mean(metric_data)
+            metric_mean = np.mean(metric_data['data'])
 
             # Build HTML table
             table_html = f"""
@@ -101,7 +119,7 @@ def plotler(results: dict):
                 table_html += f"""
                 <tr>
                     <td>{iterations_as_lst[i]}</td>
-                    <td>{metric_data[i]}</td>
+                    <td>{metric_data['data'][i]}</td>
                 </tr>
                 """
 
@@ -116,14 +134,14 @@ def plotler(results: dict):
 
             # Create Plotly graph
             fig = go.Figure()
-            fig.add_trace(go.Scatter(x=iterations_as_lst, y=metric_data,
+            fig.add_trace(go.Scatter(x=iterations_as_lst, y=metric_data['data'],
                                      mode='lines+markers', name=metric_name))
 
             # Update layout
             fig.update_layout(
                 title=metric_name,
                 xaxis_title="Test Iteration",
-                yaxis_title="{} [Unit]".format(metric_name),
+                yaxis_title="{} [{}]".format(metric_name, metric_data['unit']),
                 template="plotly_white"
             )
 

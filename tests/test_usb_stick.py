@@ -101,7 +101,7 @@ class TestUSBdd:
 
 @pytest.mark.usefixtures("wipe_and_format_usb")
 class TestUSBfio:
-    @pytest.mark.parametrize("iteration", range(1, 5))
+    @pytest.mark.parametrize("iteration", range(5))
     @pytest.mark.parametrize("rw", ["write", "randwrite"])
     @pytest.mark.parametrize("ioengine", ["sync", "libaio"])
     @pytest.mark.parametrize("iodepth", ["1", "16", "32"])
@@ -154,11 +154,11 @@ class TestUSBfio:
                 report_fio[devname][testcase][iteration]['write'] = {}
 
             report_fio[devname][testcase][iteration]['read']['io_kbytes'] = read['io_kbytes']
-            report_fio[devname][testcase][iteration]['read']['bw'] = read['bw']
+            report_fio[devname][testcase][iteration]['read']['bw_bytes'] = read['bw_bytes']
             report_fio[devname][testcase][iteration]['read']['iops'] = read['iops']
             report_fio[devname][testcase][iteration]['read']['runtime'] = read['runtime']
             report_fio[devname][testcase][iteration]['write']['io_kbytes'] = write['io_kbytes']
-            report_fio[devname][testcase][iteration]['write']['bw'] = write['bw']
+            report_fio[devname][testcase][iteration]['write']['bw_bytes'] = write['bw_bytes']
             report_fio[devname][testcase][iteration]['write']['iops'] = write['iops']
             report_fio[devname][testcase][iteration]['write']['runtime'] = write['runtime']
             report_fio[devname][testcase][iteration]['success'] = rc

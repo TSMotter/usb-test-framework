@@ -7,6 +7,7 @@ import sys
 import time
 import logging
 import json
+import re
 from datetime import datetime
 
 from fixtures.environment import testenv
@@ -117,6 +118,7 @@ class TestUSBfio:
                 + rw + '-' \
                 + bs + '-' \
                 + fio_cfg['size']
+            partition1 = testenv['usb']['device'] + '1'
             command = f"fio \
                 --name={testcase} \
                 --verify_state_save=0 \
@@ -129,19 +131,26 @@ class TestUSBfio:
                 --bs={bs} \
                 --size={fio_cfg['size']} \
                 --verify=crc32c \
-                --filename={testenv['usb']['device']} \
+                --filename={partition1} \
                 --output-format=json"
+            # transform multiple spaces into a single space
+            command = re.sub(r'\s+', ' ', command).strip()
             logger.info(f"Will execute: {command}")
             res = subprocess.run(
                 f"{command}", capture_output=True, shell=True, check=True)
             rc = res.returncode
+            if rc != 0:
+                stderr = res.stderr.decode('utf-8')
+                logger.warning(f"This is rc: {rc}")
+                logger.warning(f"This is stderr: {stderr}")
+
             stdout = res.stdout.decode('utf-8')
             json_stdout = json.loads(stdout)
             job_summary = json_stdout['jobs'][-1]
             read = job_summary['read']
             write = job_summary['write']
 
-            # Make sure json structure is OK
+            # Make sure dictionary keys exist
             if devname not in report_fio:
                 report_fio[devname] = {}
             if testcase not in report_fio[devname]:
@@ -165,12 +174,5 @@ class TestUSBfio:
             report_fio[devname][testcase][iteration]['usr_cpu'] = job_summary['usr_cpu']
             report_fio[devname][testcase][iteration]['sys_cpu'] = job_summary['sys_cpu']
 
-        except Exception as e:
-            logger.warning(f"Except block reached: {e}")
-            if rc != 0:
-                stderr = res.stderr.decode('utf-8')
-                logger.warning(f"This is rc: {rc}")
-                logger.warning(f"This is stderr: {stderr}")
-                pytest.fail("Exception happened!!!")
         finally:
             logger.info(f"Finally block reached")

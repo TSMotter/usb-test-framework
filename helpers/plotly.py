@@ -69,8 +69,8 @@ def plotler(results: dict):
 
         # Cleanup
         iterations_as_lst = []
-        for metric in metrics:
-            metric['data'] = []
+        for _, metric_data in metrics.items():
+            metric_data['data'] = []
 
         html_filen = report_ts + '-' + test_name + '.html'
         html_report_filep = os.path.join(

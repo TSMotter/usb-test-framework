@@ -51,7 +51,7 @@ def file_for_fio(scene):
 
 
 @pytest.fixture(scope="function")
-def scene_description(scene):
+def scene_info(scene):
     scene_path = os.path.join(os.path.dirname(os.getcwd()),
                               "data",
                               "blktrace",
@@ -60,9 +60,10 @@ def scene_description(scene):
 
     description = ''
     with open(scene_path, "r") as f:
+        device = f.readline()
         content = f.read().splitlines()
         description = '-'.join(content)
         description = description.replace(' ', '_')
 
-    logger.info(f"This is scene_description: {description}")
-    return description
+    logger.info(f"This is scene_info: {description}")
+    return {'device': device, 'description': description}

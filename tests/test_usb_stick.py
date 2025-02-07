@@ -12,11 +12,11 @@ from datetime import datetime
 
 from fixtures.environment import testenv
 from fixtures.parametrization import dd_cfg, fio_cfg
-from fixtures.usb_stick import rand_bin_file, wipe_and_format_usb, file_for_fio, scene_description
+from fixtures.usb_stick import rand_bin_file, wipe_and_format_usb, file_for_fio, scene_info
 from fixtures.reports import html_report_dd, report_fio
 
 # Fixed number of test iterations
-ITERATIONS = 10
+ITERATIONS = 20
 
 # Setup logging to stdout and to a log file
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(message)s")
@@ -34,7 +34,7 @@ class TestUSBdd:
                 hasher.update(chunk)
         return hasher.hexdigest()
 
-    @pytest.mark.parametrize("iteration", range(ITERATIONS))
+    @pytest.mark.parametrize("iteration", range(1, ITERATIONS+1, 1))
     def test_usb_stick_read_write_checksum(self, testenv, dd_cfg, iteration, html_report_dd, rand_bin_file):
         """Test USB reliability by writing and reading back data"""
 
@@ -100,9 +100,9 @@ class TestUSBdd:
             })
 
 
-@pytest.mark.usefixtures("wipe_and_format_usb", "file_for_fio", "scene_description")
+@pytest.mark.usefixtures("wipe_and_format_usb", "file_for_fio", "scene_info")
 class TestUSBfio:
-    @pytest.mark.parametrize("iteration", range(5))
+    @pytest.mark.parametrize("iteration", range(1, ITERATIONS+1, 1))
     @pytest.mark.parametrize("rw", ["write", "randwrite"])
     @pytest.mark.parametrize("ioengine", ["sync", "libaio"])
     @pytest.mark.parametrize("iodepth", ["1", "16", "32"])
@@ -177,11 +177,12 @@ class TestUSBfio:
         finally:
             logger.info(f"Finally block reached")
 
-    @pytest.mark.parametrize("iteration", range(5))
-    def test_fio_scenarios(self, devname, file_for_fio, scene_description,
+    @pytest.mark.parametrize("iteration", range(1, ITERATIONS+1, 1))
+    def test_fio_scenarios(self, file_for_fio, scene_info,
                            iteration, testenv, report_fio):
         try:
-            testcase = scene_description
+            devname = scene_info['device']
+            testcase = scene_info['description']
             command = f"fio \
                 --name={testcase} \
                 --direct=1 \
@@ -192,7 +193,7 @@ class TestUSBfio:
                 --output-format=json"
             # transform multiple spaces into a single space
             command = re.sub(r'\s+', ' ', command).strip()
-            logger.info(f"Will execute: {command}")
+            logger.info(f"Will execute this command:\n{command}")
             res = subprocess.run(
                 f"{command}", capture_output=True, shell=True, check=True)
             rc = res.returncode

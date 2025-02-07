@@ -25,6 +25,64 @@ HTML_CONTENT_REF = """
 </head>
 """
 
+METRICS = {
+    # I/O statistics for READ direction
+    'read_io_kbytes': {
+        'data': [],
+        'unit': 'KB',
+        'description': 'Total I/O (read) performed in KB (should match the amount of data transfered)'
+    },
+    'read_bw_bytes': {
+        'data': [],
+        'unit': 'MB/s',
+        'description': 'Average bandwidth rate (read) in MB/s'
+    },
+    'read_iops': {
+        'data': [],
+        'unit': 'I/O ops',
+        'description': 'Number of read *operations* done per second in IOPS'
+    },
+    'read_runtime': {
+        'data': [],
+        'unit': 'ms',
+        'description': 'Runtime of the READ thread in ms'
+    },
+
+    # I/O statistics for WRITE direction
+    'write_io_kbytes': {
+        'data': [],
+        'unit': 'KB',
+        'description': 'Total I/O (write) performed in KB (should match the amount of data transfered)'
+    },
+    'write_bw_bytes': {
+        'data': [],
+        'unit': 'MB/s',
+        'description': 'Average bandwidth rate (write) in MB/s'
+    },
+    'write_iops': {
+        'data': [],
+        'unit': 'I/O ops',
+        'description': 'Number of write *operations* done per second in IOPS'
+    },
+    'write_runtime': {
+        'data': [],
+        'unit': 'ms',
+        'description': 'Runtime of the WRITE thread in ms'
+    },
+
+    # CPU time statistics for all operations
+    'base_usr_cpu': {
+        'data': [],
+        'unit': '% cpu time',
+        'description': 'usr cpu usage - percentage of cpu time in usr space'
+    },
+    'base_sys_cpu': {
+        'data': [],
+        'unit': '% cpu time',
+        'description': 'sys cpu usage - percentage of cpu time in sys space'
+    },
+}
+
 
 def plotler(results: dict):
     logger.info(f"Generating plotly report")
@@ -38,38 +96,13 @@ def plotler(results: dict):
         json_results = json.dumps(results, indent=4)
         f.write(json_results)
 
-    metrics = {
-        # I/O statistics for READ direction
-        # total io performed kbytes (should match the amount of data transfered, defined via --size)
-        'read_io_kbytes': {'data': [], 'unit': 'KB'},
-        # average bandwidth rate [MB/s]
-        'read_bw_bytes': {'data': [], 'unit': 'MB/s'},
-        # iops (number of read/write *operations* done per second. Should be correlated
-        # somehow with the iodepth parameter)
-        'read_iops': {'data': [], 'unit': 'I/O ops'},
-        # runtime of the thread [ms]
-        'read_runtime': {'data': [], 'unit': 'ms'},
-
-        # I/O statistics for WRITE direction
-        'write_io_kbytes': {'data': [], 'unit': 'KB'},
-        'write_bw_bytes': {'data': [], 'unit': 'MB/s'},
-        'write_iops': {'data': [], 'unit': 'I/O ops'},
-        'write_runtime': {'data': [], 'unit': 'ms'},
-
-        # CPU time statistics for all operations
-        # usr cpu usage [% of cpu time in usr space]
-        'base_usr_cpu': {'data': [], 'unit': '% cpu time'},
-        # sys cpu usage [% of cpu time in sys space]
-        'base_sys_cpu': {'data': [], 'unit': '% cpu time'},
-    }
-
     devname = next(iter(results))
     dev_report = results[devname]
     for test_name, test_data in dev_report.items():
 
         # Cleanup
         iterations_as_lst = []
-        for _, metric_data in metrics.items():
+        for _, metric_data in METRICS.items():
             metric_data['data'] = []
 
         html_filen = report_ts + '-' + test_name + '.html'
@@ -80,33 +113,36 @@ def plotler(results: dict):
             <body>
                 <h1>Test Report: {devname} - {test_name}</h1>
             """
+        html_content += f"""
+            <hr>
+            """
 
         for iteration, iteration_data in test_data.items():
             iterations_as_lst.append(int(iteration))
-            metrics['read_io_kbytes']['data'].append(
+            METRICS['read_io_kbytes']['data'].append(
                 float(iteration_data['read']['io_kbytes']))
-            metrics['read_bw_bytes']['data'].append(
+            METRICS['read_bw_bytes']['data'].append(
                 float(iteration_data['read']['bw_bytes']))
-            metrics['read_iops']['data'].append(
+            METRICS['read_iops']['data'].append(
                 float(iteration_data['read']['iops']))
-            metrics['read_runtime']['data'].append(
+            METRICS['read_runtime']['data'].append(
                 float(iteration_data['read']['runtime']))
 
-            metrics['write_io_kbytes']['data'].append(
+            METRICS['write_io_kbytes']['data'].append(
                 float(iteration_data['write']['io_kbytes']))
-            metrics['write_bw_bytes']['data'].append(
+            METRICS['write_bw_bytes']['data'].append(
                 float(iteration_data['write']['bw_bytes']))
-            metrics['write_iops']['data'].append(
+            METRICS['write_iops']['data'].append(
                 float(iteration_data['write']['iops']))
-            metrics['write_runtime']['data'].append(
+            METRICS['write_runtime']['data'].append(
                 float(iteration_data['write']['runtime']))
 
-            metrics['base_usr_cpu']['data'].append(
+            METRICS['base_usr_cpu']['data'].append(
                 float(iteration_data['usr_cpu']))
-            metrics['base_sys_cpu']['data'].append(
+            METRICS['base_sys_cpu']['data'].append(
                 float(iteration_data['sys_cpu']))
 
-        for metric_name, metric_data in metrics.items():
+        for metric_name, metric_data in METRICS.items():
             metric_mean = np.mean(metric_data['data'])
 
             # Build HTML table
@@ -151,8 +187,15 @@ def plotler(results: dict):
             # Convert figure to HTML div
             div_html = fig.to_html(full_html=False, include_plotlyjs=False)
 
+            complete_name = metric_name + \
+                ' [' + metric_data['unit'] + '] - ' + \
+                metric_data['description']
+
             # Append to HTML content
-            html_content += f"<div class='chart-container'><h2>{test_name}</h2>{table_html}{div_html}</div>"
+            html_content += f"<div class='chart-container'><h2>{complete_name}</h2>{table_html}{div_html}</div>"
+            html_content += f"""
+            <hr>
+            """
 
         # Close HTML
         html_content += """

@@ -41,10 +41,15 @@ pytest --log-cli-level=DEBUG -v --devname=sandisk-A1 -k test_fio_write_and_verif
 pytest --log-cli-level=DEBUG -v --devname=kingston-A1 --scene=scene1 -k test_fio_scenarios
 ```
 
-- Cheatsheet
+- Cheatsheet for inspecting disks / devices
 ```sh
 sudo fdisk -l /dev/sdb
 sudo parted /dev/sdb print
+```
+
+- Merging 2 jsons into a single HTML report
+```sh
+python scripts/create_merge_html.py workspace/2025-02-06-22-34-report-fio.json workspace/2025-02-06-23-11-report-fio.json
 ```
 
 - Generate `blktrace` file and produce binary file with `blkparse` to replay that I/O profile with fio:

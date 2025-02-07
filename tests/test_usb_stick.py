@@ -12,7 +12,7 @@ from datetime import datetime
 
 from fixtures.environment import testenv
 from fixtures.parametrization import dd_cfg, fio_cfg
-from fixtures.usb_stick import rand_bin_file, wipe_and_format_usb
+from fixtures.usb_stick import rand_bin_file, wipe_and_format_usb, file_for_fio, scene_description
 from fixtures.reports import html_report_dd, report_fio
 
 # Fixed number of test iterations
@@ -100,7 +100,7 @@ class TestUSBdd:
             })
 
 
-@pytest.mark.usefixtures("wipe_and_format_usb")
+@pytest.mark.usefixtures("wipe_and_format_usb", "file_for_fio", "scene_description")
 class TestUSBfio:
     @pytest.mark.parametrize("iteration", range(5))
     @pytest.mark.parametrize("rw", ["write", "randwrite"])
@@ -132,6 +132,63 @@ class TestUSBfio:
                 --size={fio_cfg['size']} \
                 --verify=crc32c \
                 --filename={partition1} \
+                --output-format=json"
+            # transform multiple spaces into a single space
+            command = re.sub(r'\s+', ' ', command).strip()
+            logger.info(f"Will execute: {command}")
+            res = subprocess.run(
+                f"{command}", capture_output=True, shell=True, check=True)
+            rc = res.returncode
+            if rc != 0:
+                stderr = res.stderr.decode('utf-8')
+                logger.warning(f"This is rc: {rc}")
+                logger.warning(f"This is stderr: {stderr}")
+
+            stdout = res.stdout.decode('utf-8')
+            json_stdout = json.loads(stdout)
+            job_summary = json_stdout['jobs'][-1]
+            read = job_summary['read']
+            write = job_summary['write']
+
+            # Make sure dictionary keys exist
+            if devname not in report_fio:
+                report_fio[devname] = {}
+            if testcase not in report_fio[devname]:
+                report_fio[devname][testcase] = {}
+            if iteration not in report_fio[devname][testcase]:
+                report_fio[devname][testcase][iteration] = {}
+            if 'read' not in report_fio[devname][testcase][iteration]:
+                report_fio[devname][testcase][iteration]['read'] = {}
+            if 'write' not in report_fio[devname][testcase][iteration]:
+                report_fio[devname][testcase][iteration]['write'] = {}
+
+            report_fio[devname][testcase][iteration]['read']['io_kbytes'] = read['io_kbytes']
+            report_fio[devname][testcase][iteration]['read']['bw_bytes'] = read['bw_bytes']
+            report_fio[devname][testcase][iteration]['read']['iops'] = read['iops']
+            report_fio[devname][testcase][iteration]['read']['runtime'] = read['runtime']
+            report_fio[devname][testcase][iteration]['write']['io_kbytes'] = write['io_kbytes']
+            report_fio[devname][testcase][iteration]['write']['bw_bytes'] = write['bw_bytes']
+            report_fio[devname][testcase][iteration]['write']['iops'] = write['iops']
+            report_fio[devname][testcase][iteration]['write']['runtime'] = write['runtime']
+            report_fio[devname][testcase][iteration]['success'] = rc
+            report_fio[devname][testcase][iteration]['usr_cpu'] = job_summary['usr_cpu']
+            report_fio[devname][testcase][iteration]['sys_cpu'] = job_summary['sys_cpu']
+
+        finally:
+            logger.info(f"Finally block reached")
+
+    @pytest.mark.parametrize("iteration", range(5))
+    def test_fio_scenarios(self, devname, file_for_fio, scene_description,
+                           iteration, testenv, report_fio):
+        try:
+            testcase = scene_description
+            command = f"fio \
+                --name={testcase} \
+                --direct=1 \
+                --replay_redirect={testenv['usb']['device']} \
+                --replay_no_stall=1 \
+                --read_iolog={file_for_fio} \
+                --group_reporting \
                 --output-format=json"
             # transform multiple spaces into a single space
             command = re.sub(r'\s+', ' ', command).strip()

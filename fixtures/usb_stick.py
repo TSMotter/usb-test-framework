@@ -37,3 +37,32 @@ def wipe_and_format_usb(testenv):
     logger.info(f"Wiping and formating USB device with {wipe_script}")
     subprocess.run(
         f"sh {wipe_script} {testenv['usb']['device']}", shell=True, check=True)
+
+
+@pytest.fixture(scope="function")
+def file_for_fio(scene):
+    scene_path = os.path.join(os.path.dirname(os.getcwd()),
+                              "data",
+                              "blktrace",
+                              scene,
+                              "file-for-fio.bin")
+    logger.info(f"This is scene_path: {scene_path}")
+    return scene_path
+
+
+@pytest.fixture(scope="function")
+def scene_description(scene):
+    scene_path = os.path.join(os.path.dirname(os.getcwd()),
+                              "data",
+                              "blktrace",
+                              scene,
+                              "readme.md")
+
+    description = ''
+    with open(scene_path, "r") as f:
+        content = f.read().splitlines()
+        description = '-'.join(content)
+        description = description.replace(' ', '_')
+
+    logger.info(f"This is scene_description: {description}")
+    return description

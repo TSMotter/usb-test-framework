@@ -36,8 +36,9 @@ sudo su
 source .venvpy3/bin/activate
 cd tests
 pytest --log-cli-level=DEBUG -v -k test_usb_stick.py
-pytest --log-cli-level=DEBUG -v --devname=sandisk-32gb -k TestUSBfio
-pytest --log-cli-level=DEBUG -v -k test_fio_write_and_verify
+pytest --log-cli-level=DEBUG -v --devname=sandisk-A1 -k TestUSBfio
+pytest --log-cli-level=DEBUG -v --devname=sandisk-A1 -k test_fio_write_and_verify
+pytest --log-cli-level=DEBUG -v --devname=kingston-A1 --scene=scene1 -k test_fio_scenarios
 ```
 
 - Cheatsheet

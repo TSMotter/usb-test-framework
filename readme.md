@@ -63,7 +63,7 @@ python scripts/create_merge_html.py workspace/2025-02-06-22-34-report-fio.json w
 /dev/sdb1 on /media/ggm/USB_DRIVE type ext4 (rw,nosuid,nodev,relatime,uhelper=udisks2)
 (.venvpy3) $ blktrace /dev/sdb
 (terminal2) $ sudo cp rand-bin.bin /media/ggm/USB_DRIVE/
-(.venvpy3) $ blkparse sdb -o dump.log
+(.venvpy3) $ blkparse sdb | tail --lines=21 | head --lines=15 > dump.log
 (.venvpy3) $ blkparse sdb -o /dev/null -d file-for-fio.bin
 (.venvpy3) $ ls
 file-for-fio.bin  rand-bin.bin  sdb.blktrace.0  sdb.blktrace.1  sdb.blktrace.2  sdb.blktrace.3  sdb.blktrace.4  sdb.blktrace.5

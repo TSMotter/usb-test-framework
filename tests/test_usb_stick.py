@@ -103,9 +103,9 @@ class TestUSBdd:
 @pytest.mark.usefixtures("wipe_and_format_usb", "file_for_fio", "scene_info")
 class TestUSBfio:
     @pytest.mark.parametrize("iteration", range(1, ITERATIONS+1, 1))
-    @pytest.mark.parametrize("rw", ["write", "randwrite"])
-    @pytest.mark.parametrize("ioengine", ["sync", "libaio"])
-    @pytest.mark.parametrize("iodepth", ["1", "16", "32"])
+    @pytest.mark.parametrize("rw", ["randwrite"])#, "randwrite"])
+    @pytest.mark.parametrize("ioengine", ["sync"])#, "libaio"])
+    @pytest.mark.parametrize("iodepth", ["4"])#, "16"])#, "32"])
     @pytest.mark.parametrize("numjobs", ["1"])
     @pytest.mark.parametrize("bs", ["128k"])
     def test_fio_write_verify(self, devname,

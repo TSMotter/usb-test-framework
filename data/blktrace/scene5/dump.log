@@ -1,0 +1,15 @@
+Total (sdb):
+ Reads Queued:       9,095,   52,142KiB	 Writes Queued:     127,591,   19,381MiB
+ Read Dispatches:    9,492,   50,237KiB	 Write Dispatches:   46,071,    4,794MiB
+ Reads Requeued:       428		 Writes Requeued:         0
+ Reads Completed:    9,484,   50,237KiB	 Writes Completed:   46,071,    4,794MiB
+ Read Merges:           31,       94KiB	 Write Merges:       81,508,  465,974KiB
+ PC Reads Queued:        0,        0KiB	 PC Writes Queued:        0,        0KiB
+ PC Read Disp.:      3,418,        0KiB	 PC Write Disp.:          0,        0KiB
+ PC Reads Req.:          0		 PC Writes Req.:          0
+ PC Reads Compl.:    3,418		 PC Writes Compl.:        0
+ IO unplugs:        12,834        	 Timer unplugs:       1,817
+
+Throughput (R/W): 158KiB/s / 15,103KiB/s
+Events (sdb): 588,159 entries
+Skips: 0 forward (0 -   0.0%)
